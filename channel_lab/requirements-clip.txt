@@ -1,0 +1,4 @@
+# Candidate constraints, not a runtime-validated lock. No model downloads.
+transformers==4.55.4
+huggingface-hub>=0.34,<1.0
+safetensors>=0.4.3,<0.7

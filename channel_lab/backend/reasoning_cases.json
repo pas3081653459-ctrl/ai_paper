@@ -1,0 +1,5 @@
+{"version":"arithmetic-audit-v1","note":"本站手写固定整数题；目标用于独立评分，不是模型输出或论文基准。","tasks":[
+ {"id":"boxes","category":"乘法后减法","question":"There are 3 boxes with 4 apples in each box. Two apples are eaten. How many apples remain?","expected":"10"},
+ {"id":"tickets","category":"减法后乘法","question":"A group has 9 adults. Three leave before buying tickets. Each remaining adult buys 2 tickets. How many tickets are bought?","expected":"12"},
+ {"id":"books","category":"加法后除法","question":"A shelf has 8 books and receives 4 more. The books are split equally into 3 piles. How many books are in each pile?","expected":"4"}
+]}

@@ -1,0 +1,16 @@
+{
+  "version": "sentiment-cards-v1",
+  "note": "本站编写的英语情感固定输入，不是论文基准或模型输出。",
+  "examples": [
+    {"id":"e1","input":"The film was delightful and I enjoyed every minute.","label":"positive"},
+    {"id":"e2","input":"The story was boring and the acting was terrible.","label":"negative"},
+    {"id":"e3","input":"A wonderful performance with a satisfying ending.","label":"positive"},
+    {"id":"e4","input":"A disappointing movie that wasted my time.","label":"negative"}
+  ],
+  "tests": [
+    {"id":"t1","input":"I loved the charming characters and beautiful music.","label":"positive"},
+    {"id":"t2","input":"The plot made no sense and I wanted to leave.","label":"negative"},
+    {"id":"t3","input":"An excellent film that I would happily watch again.","label":"positive"},
+    {"id":"t4","input":"The jokes were dull and the ending was awful.","label":"negative"}
+  ]
+}

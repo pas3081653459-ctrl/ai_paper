@@ -1,0 +1,5 @@
+# Optional image-lesson adapter dependencies, not a tested environment lock.
+# Reuse the same Transformers version as the existing CLIP/language adapters.
+-r requirements-clip.txt
+# Existing base requirements provide torch, numpy, Pillow, FastAPI and Jinja2.
+# No accelerate, GPU quantization plugin, model weights or model-download step.

@@ -1,0 +1,6 @@
+export type ModelKey = 'cnn' | 'resnet'
+export interface Feature { shape: number[]; input_shape: number[]; operation: string; parameters: number; kernel: number[] | null; stride: number[] | null; data: string; min: number; max: number; mean: number; channels: {min: number; max: number; mean: number}[]; values?: Float32Array }
+export interface Result { mode: string; preprocessed: string; original_size: number[]; input_shape: number[]; milliseconds: number; models: Record<ModelKey, { probabilities: number[]; prediction: number; features: Record<string, Feature> }> }
+export interface Metrics { accuracy: number; balanced_accuracy: number; recall: number[]; confusion: number[][] }
+export interface Info { trained_ready: boolean; input_size: number; models: Record<ModelKey, {parameters: number; name: string}>; experiment: null | { sizes: Record<string, number>; epochs: number; seed: number; split_hash: string; device: string; trained_at: string; models: Record<ModelKey, { best_epoch: number; validation: Metrics; test: Metrics; history: {epoch: number; loss: number; accuracy: number; balanced_accuracy: number}[] }> } }
+export function values(feature: Feature) { if (!feature.values) { const raw = atob(feature.data); const bytes = Uint8Array.from(raw, x => x.charCodeAt(0)); feature.values = new Float32Array(bytes.buffer) } return feature.values }

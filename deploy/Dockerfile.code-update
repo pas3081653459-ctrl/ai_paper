@@ -1,0 +1,6 @@
+# Code-only update on top of the previous, verified image (same Python deps: torch 2.14.0+cpu, transformers 4.55.4, diffusers 0.35.1).
+# Used 2026-10-04: the full Dockerfile's layer cache was gone and pip via the CPU-torch index stalled.
+FROM channel-lab:prev-20261004
+RUN rm -rf /app/channel_lab
+COPY channel_lab /app/channel_lab
+RUN mkdir -p /app/channel_lab/models

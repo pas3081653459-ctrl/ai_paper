@@ -1,0 +1,32 @@
+<script setup lang="ts">
+import {computed,ref,shallowRef,watch} from 'vue'
+import TraceLoader from './TraceLoader.vue'
+import ToolSampleLegacy from './ToolSampleLegacy.vue'
+import LanguageModelStatus from './LanguageModelStatus.vue'
+import {useLocalLanguage,downloadLanguageRecord} from '../../papers/useLocalLanguage'
+import {parseTools} from '../../papers/trainingTraces'
+import {envelope} from '../../papers/traceValidation'
+import {downloadSearch} from '../../papers/ticSearch'
+const defaults=[{prefix:'Seven boxes each contain eight apples. In total there are',target:' 56 apples.',a:7,b:8,op:'*'}, {prefix:'Seven boxes each contain eight apples. In total there are',target:' 56 apples.',a:2,b:2,op:'+'}]
+const candidates=ref(defaults.map(c=>({...c}))),index=ref(0),token=ref(0),threshold=ref(.2),revealed=ref(false),meta=ref('')
+const data=shallowRef<ReturnType<typeof parseTools>|null>(null)
+const local=useLocalLanguage('22','training'),{config,busy,error}=local
+const current=computed(()=>data.value?.candidates[index.value])
+function totals(c:ReturnType<typeof parseTools>['candidates'][number]){return [c.loss_without,c.loss_empty,c.loss_with].map(xs=>xs.reduce<number>((s,n,i)=>s+n*c.weights[i],0))}
+const losses=computed(()=>current.value?totals(current.value):[0,0,0]),gain=computed(()=>Math.min(losses.value[0],losses.value[1])-losses.value[2])
+const baseline=computed(()=>losses.value[0]<=losses.value[1]?0:1)
+const contributions=computed(()=>{const c=current.value;if(!c)return [];const base=baseline.value===0?c.loss_without:c.loss_empty;return base.map((n,i)=>(n-c.loss_with[i])*c.weights[i])})
+const waterfall=computed(()=>{let cumulative=0;return contributions.value.map((delta,i)=>{const start=cumulative;cumulative+=delta;return {i,start,end:cumulative,delta}})})
+const extent=computed(()=>Math.max(.01,...waterfall.value.flatMap(b=>[Math.abs(b.start),Math.abs(b.end)])))
+function y(n:number){return 120-n/extent.value*90}
+function clear(){local.invalidate();data.value=null;meta.value='';token.value=0;revealed.value=false}
+watch(candidates,clear,{deep:true,flush:'sync'})
+function accept(v:unknown){data.value=parseTools(v);index.value=0;token.value=0;revealed.value=false;meta.value='导入记录来源由提供者声明'}
+function receive(v:unknown){const e=envelope(v,'22');accept(e.data);meta.value=JSON.stringify(e.provenance,null,2)}
+function start(){clear();local.request({paper_id:'22',candidates:candidates.value},receive)}
+function calculate(c:typeof defaults[number]){return c.op==='+'?c.a+c.b:c.op==='-'?c.a-c.b:c.a*c.b}
+const kept=computed(()=>data.value?.candidates.filter(c=>{const l=totals(c);return Math.min(l[0],l[1])-l[2]>=threshold.value})??[])
+</script>
+<template><section class="paper-lab"><h3>一次调用，值得保留为训练样本吗？</h3><p>固定例子包含相关计算与无关计算。参数由读者提出，计算器只支持范围内整数 + / − / ×；不会执行代码。这里没有让模型学习调用位置，也没有自动微调。</p><div class="cards"><article v-for="(c,i) in candidates" :key="i"><h4>候选 {{i+1}}</h4><label>无调用上下文<textarea v-model="c.prefix" maxlength="800"/></label><label>同一目标后缀（保留开头空格）<input v-model="c.target" maxlength="200"></label><div class="controls"><input v-model.number="c.a" type="number" min="-10000" max="10000" aria-label="左操作数"><select v-model="c.op"><option>+</option><option>-</option><option>*</option></select><input v-model.number="c.b" type="number" min="-10000" max="10000" aria-label="右操作数"></div><p>浏览器算术预览：{{calculate(c)}}；后端评分前会独立执行计算器。此处还没有语言模型概率。</p></article></div><button :disabled="busy||!config?.configured" @click="start">执行工具并评分三个上下文（GPT‑2替代）</button><LanguageModelStatus guide="TRAINING_CATEGORY.md" :config="config" :busy="busy" :error="error" @refresh="local.refresh" @cancel="local.cancel"/><TraceLoader paper-id="22" :validate="parseTools" @loaded="accept" @clear="clear"/>
+<template v-if="data&&current"><select v-model.number="index" @change="token=0;revealed=false"><option v-for="(c,i) in data.candidates" :key="i" :value="i">{{i+1}} · {{c.call}}</option></select><p>实际工具返回 {{current.tool_return}}；目标 {{JSON.stringify(current.target_text)}}。</p><div class="cards"><article v-for="(context,i) in current.contexts" :key="i"><b>{{['无调用','仅调用、无返回','带实际返回'][i]}}</b><pre>{{context.prefix}}<mark>{{current.target_text}}</mark></pre><p>目标起始索引 {{context.target_start}}；前缀 {{context.prefix_ids.length}} 个token。</p></article></div><button v-if="!revealed" @click="revealed=true">揭示实际模型 NLL</button><template v-if="revealed"><div class="tokens"><button v-for="(t,i) in current.target_tokens" :key="i" :aria-pressed="token===i" @click="token=i">{{t}}</button></div><p>选中目标ID {{current.target_ids[token]}}；权重 {{current.weights[token].toFixed(4)}}；NLL 无调用 {{current.loss_without[token].toFixed(4)}} / 空返回 {{current.loss_empty[token].toFixed(4)}} / 有返回 {{current.loss_with[token].toFixed(4)}}。</p><div class="waterfall"><svg :width="Math.max(480,waterfall.length*48)" height="250" :viewBox="`0 0 ${Math.max(480,waterfall.length*48)} 250`" aria-label="目标token对总损失改善的累积贡献"><line x1="0" y1="120" :x2="Math.max(480,waterfall.length*48)" y2="120" stroke="#94a3b8"/><g v-for="b in waterfall" :key="b.i"><rect :x="b.i*48+8" :y="Math.min(y(b.start),y(b.end))" width="32" :height="Math.max(1,Math.abs(y(b.start)-y(b.end)))" :fill="b.delta>=0?'#22c55e':'#f87171'"/><text :x="b.i*48+8" y="233">{{b.i}}</text><title>token {{b.i}}：贡献 {{b.delta.toFixed(5)}}；累计 {{b.end.toFixed(5)}}</title></g></svg></div><p>瀑布图：先按总损失选定{{baseline===0?'无调用':'空返回'}}为整段基线，再逐token累加 w·(NLL基线−NLL带返回)，没有逐token挑最小值。</p><p>Δ=min({{losses[0].toFixed(4)}},{{losses[1].toFixed(4)}})−{{losses[2].toFixed(4)}}={{gain.toFixed(4)}}。</p><label>筛选阈值 {{threshold}}<input v-model.number="threshold" type="range" min="0" max="5" step=".05"></label><p>当前{{gain>=threshold?'保留':'丢弃'}}；整批保留 {{kept.length}} / {{data.candidates.length}}。</p><button @click="downloadSearch({kind:'filtered-candidates-not-trained-model',threshold,source:meta,candidates:kept},'tool-filtered-candidates.json')">导出筛选结果</button><details><summary>逐token原始数值和输入ID</summary><pre>{{current}}</pre></details></template><button v-if="local.trace.value" @click="downloadLanguageRecord(local.trace.value,'22')">导出完整模型评分记录</button><details><summary>来源</summary><pre>{{meta}}</pre></details></template><details><summary>旧版损失记录（对齐信息有限）</summary><ToolSampleLegacy/></details><p class="note">本地适配器独立编码一次目标后缀，再把同一组ID追加到三个前缀；不是把拼接字符串各自重新分词。默认权重1/T，分数单位nats/token；导入记录按其权重原样求和。只筛选，不训练；负收益照样保留展示。</p></section></template>
+<style scoped>.waterfall{overflow:auto;max-height:280px}.waterfall svg{max-width:none;width:auto}.waterfall text{font-size:11px}input[type=number]{width:80px}</style>

@@ -1,0 +1,6 @@
+<script setup lang="ts">
+defineProps<{config:{configured:boolean;problems:string[];model_dir:string;device:string;timeout_seconds:number}|null;busy:boolean;error:string;guide?:string}>()
+defineEmits<{refresh:[];cancel:[]}>()
+</script>
+<template><aside class="language-status" :aria-busy="busy"><p role="status">{{busy?'正在加载模型或计算结果…':config?.configured?'模型文件已配置，可尝试运行':config?'未配置模型，可导入已有记录或先读原文':'尚未取得模型配置状态'}}</p><p v-if="error" role="alert">{{error}}</p><div class="controls"><button :disabled="busy" @click="$emit('refresh')">检查配置</button><button v-if="busy" @click="$emit('cancel')">取消当前推理</button></div><details><summary>{{config&&!config.configured?'启用真实推理需要什么？':'查看设备、时限与配置详情'}}</summary><p>文件存在检查通过不代表模型已加载。按 channel_lab/{{guide??'LANGUAGE_CATEGORY.md'}} 准备本地文件，网页不会自动下载。</p><ul v-if="config&&!config.configured"><li v-for="problem in config.problems" :key="problem">{{problem}}</li></ul><p v-if="config">{{config.device}} · 超时 {{config.timeout_seconds}} 秒</p><code>{{config?.model_dir}}</code></details></aside></template>
+<style scoped>.language-status{padding:14px;border:1px solid #dbe3ed;border-radius:8px;background:#f8fafc;margin:16px 0}.language-status p{font-size:13px}.language-status code,.language-status li{overflow-wrap:anywhere;font-size:12px}</style>

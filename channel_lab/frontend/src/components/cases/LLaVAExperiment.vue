@@ -1,0 +1,47 @@
+<script setup lang="ts">
+import { computed,onUnmounted,ref,shallowRef,watch } from 'vue'
+import LabPhotoPicker from './LabPhotoPicker.vue'
+import PromptCanvas from './PromptCanvas.vue'
+import VisionModelStatus from './VisionModelStatus.vue'
+import LLaVAReplay from './LLaVAReplay.vue'
+import EvidenceQuestion from './EvidenceQuestion.vue'
+import EvidenceNotes from './EvidenceNotes.vue'
+import { type LabPhoto,type PromptBox,base64Payload,occludePhoto } from '../../papers/visionInputs'
+import { useVisionModel,downloadVisionTrace } from '../../papers/useVisionModel'
+import { useEvidenceNotebook } from '../../papers/evidenceNotebook'
+import { parseLlava } from '../../papers/visionTraces'
+import { envelope,object,string,image,fields,list,integer,probability } from '../../papers/traceValidation'
+const photo=shallowRef<LabPhoto|null>(null),box=ref<PromptBox|null>(null),changed=ref(''),preparing=ref(false),error=ref('')
+const question=ref('Describe the animal and its visible surroundings. Do not guess details you cannot see.'),includeNoImage=ref(true),maxTokens=ref(64),steps=ref(0)
+const boxEditor=ref([0,0,100,100])
+const local=useVisionModel('19'),{config,busy,error:modelError}=local
+const {book,saved,answer,check,reset:resetBook,download}=useEvidenceNotebook('19')
+const token=fields({id:integer,piece:string,p:probability})
+function parse(value:unknown){const base=parseLlava(value),raw=object(value).conditions as unknown[];return {...base,conditions:base.conditions.map((c,i)=>{const extra=object(raw[i]);return {...c,model_view:extra.model_view==null?null:image(extra.model_view),prompt:extra.prompt===undefined?'未记录':string(extra.prompt),generated:extra.generated===undefined?[]:list(token,0,128)(extra.generated),stop_reason:extra.stop_reason===undefined?'未记录':string(extra.stop_reason)}})}}
+const result=shallowRef<ReturnType<typeof parse>|null>(null),source=ref('')
+let sequence=0,disposed=false
+function invalidate(){local.invalidate();result.value=null;source.value='';steps.value=0}
+async function prepare(){const id=++sequence;invalidate();changed.value='';error.value='';if(!photo.value)return;preparing.value=true;try{const value=await occludePhoto(photo.value,box.value);if(!disposed&&id===sequence)changed.value=value}catch(e){if(!disposed&&id===sequence)error.value=String(e)}finally{if(!disposed&&id===sequence)preparing.value=false}}
+watch([photo,box],prepare,{deep:true,flush:'sync'});watch([question,includeNoImage,maxTokens],invalidate,{flush:'sync'})
+function changePhoto(value:LabPhoto){box.value=null;photo.value=value;boxEditor.value=[0,0,Math.floor(value.width/2),Math.floor(value.height/2)]}
+function setBox(value:PromptBox){if(!photo.value)return;if(value.some(v=>!Number.isFinite(v))||value[0]<0||value[1]<0||value[0]>=value[2]||value[1]>=value[3]||value[2]>photo.value.width||value[3]>photo.value.height){error.value='遮挡框必须在实验图内且有正面积';return}box.value=value}
+function preset(kind:'head'|'background'){if(!photo.value?.source.includes('Abyssinian_1'))return;const {width:w,height:h}=photo.value;setBox(kind==='head'?[Math.round(.54*w),Math.round(.17*h),Math.round(.72*w),Math.round(.43*h)]:[0,0,Math.round(.42*w),Math.round(.28*h)])}
+async function run(){if(!photo.value||!changed.value||preparing.value)return;result.value=null;await local.run({image_base64:base64Payload(photo.value.url),changed_base64:base64Payload(changed.value),question:question.value,max_new_tokens:maxTokens.value,include_no_image:includeNoImage.value},raw=>{const record=envelope(raw,'19');const next=parse(record.data),key=String(record.provenance.settings.comparison_sha256??'');if(!key||book.answers['comparison-id']!==key){for(const condition of ['original','occluded','no_image']){delete book.answers[`observation-${condition}`];delete book.answers[`tag-${condition}`]}}book.answers['comparison-id']=key;result.value=next;steps.value=Math.max(...next.conditions.map(c=>c.generated.length));source.value=JSON.stringify(record.provenance,null,2)})}
+const longest=computed(()=>Math.max(0,...(result.value?.conditions.map(c=>c.generated.length)??[])))
+const completed=computed(()=>['grounding','causal','version'].filter(k=>book.checked[k]).length)
+function restart(){resetBook();box.value=null;invalidate()}
+onUnmounted(()=>{disposed=true;++sequence})
+</script>
+<template><section class="paper-lab"><h3>回答取证台：文字说得具体，图片真的提供了这些线索吗？</h3><p>视觉指令训练解决“如何按问题使用图片”，但连接视觉和语言并不保证回答可靠。先遮挡一处线索，再对同一问题比较原图、遮挡图与可选的无图回答。</p><LabPhotoPicker @change="changePhoto"/>
+ <template v-if="photo"><div class="controls"><button :disabled="!photo.source.includes('Abyssinian_1')" @click="preset('head')">固定任务：遮挡猫头</button><button :disabled="!photo.source.includes('Abyssinian_1')" @click="preset('background')">对照：遮挡左上背景</button><button @click="box=null">恢复原图（相同输入对照）</button></div><div class="cards"><article><strong>在原图拖框指定遮挡区</strong><PromptCanvas :photo="photo" tool="box" :box="box" @box="setBox"/></article><article><strong>实际提交的遮挡图</strong><img v-if="changed" :src="changed" alt="灰色区域为被替换的真实像素"><p v-if="preparing" role="status">准备干预图…</p></article></div><p class="note">遮挡使用RGB(127,127,127)，不会生成物体轮廓或模型答案。无框时两张图相同，可检查解码一致性。</p><details><summary>键盘设置遮挡框</summary><div class="controls"><label v-for="(label,i) in ['x1','y1','x2','y2']" :key="label">{{label}}<input v-model.number="boxEditor[i]" type="number"></label><button @click="setBox([boxEditor[0],boxEditor[1],boxEditor[2],boxEditor[3]])">应用遮挡框</button></div></details></template>
+ <label>三个条件使用同一个问题<textarea v-model="question" maxlength="1000"/></label><div class="controls"><button @click="question='What visible features support identifying the animal? State when a feature is hidden.'">问题：辨认依据</button><button @click="question='What is the animal resting on? Describe only visible evidence.'">问题：周围环境</button><label><input v-model="includeNoImage" type="checkbox">加入无图条件</label><label>最多新token {{maxTokens}}<input v-model.number="maxTokens" type="range" min="16" max="128" step="16"></label></div>
+ <p v-if="error" role="alert">{{error}}</p><VisionModelStatus :config="config" :busy="busy" :error="modelError" @refresh="local.refresh" @cancel="local.cancel"/><button :disabled="!changed||preparing||busy||!question.trim()||!config?.configured" @click="run">运行同模型输入对照</button><p class="note">仅发送到当前网站后端的本地模型，逐条件贪心解码，不更新参数。无图路径去掉图片和图像占位token，属于另一输入条件，不是视觉主干的训练消融。</p>
+ <template v-if="result"><div class="cards"><article v-for="c in result.conditions" :key="c.condition"><h4>{{c.condition==='original'?'原图':c.condition==='occluded'?'遮挡图':'无图'}}</h4><img v-if="c.image" :src="c.image" alt="本次实际图像输入"><p v-else>未提供图片</p><blockquote>{{c.answer||'模型未生成可见文本'}}</blockquote><p class="note">停止：{{c.stop_reason}} · {{c.generated.length}}个新token</p><details v-if="c.model_view"><summary>模型图像处理器实际看到的裁剪</summary><img :src="c.model_view" alt="pixel_values反归一化图"><p>遮挡区域是否仍在裁剪内？原图里可见不等于模型输入里可见。</p></details><label>摘录一句并记录依据（最多200字）<textarea v-model="book.answers[`observation-${c.condition}`]" maxlength="200" placeholder="例如：回答提到眼睛颜色，但遮挡图看不见眼睛。"/></label><label>我的判断<select v-model="book.answers[`tag-${c.condition}`]"><option value="">未标注</option><option>图中可支持</option><option>缺少图像依据</option><option>暂时无法判断</option></select></label></article></div>
+ <details><summary>逐token观察公开输出，不展示私有推理</summary><label>显示前{{steps}}个新token<input v-model.number="steps" type="range" min="0" :max="longest"></label><div class="cards"><article v-for="c in result.conditions" :key="c.condition"><strong>{{c.condition}}</strong><div class="tokens"><span v-for="(t,i) in c.generated.slice(0,steps)" :key="i" :title="`id=${t.id}; p=${t.p.toPrecision(4)}`">{{t.piece||'∅'}}</span></div><details><summary>实际提示模板</summary><pre>{{c.prompt}}</pre></details></article></div><p class="note">token片段单独解码可能与最终整段解码的空格不同；上方最终回答保留完整解码结果。</p></details><details><summary>模型、权重指纹与比较条件</summary><pre>{{source}}</pre></details><button @click="downloadVisionTrace(local.trace.value,'19')">导出真实输入与回答记录</button></template>
+ <details><summary>无权重时：导入已有真实回答进行取证</summary><LLaVAReplay/></details>
+ <EvidenceQuestion title="遮挡后仍说出某个细节，应该怎样记录？" :options="['保留回答，检查可见证据并标注不确定性','把回答改成正确答案再展示']" :value="book.answers.grounding" :checked="book.checked.grounding" correct="保留回答，检查可见证据并标注不确定性" explanation="语言先验可能给出合理但没有图像依据的内容。一次输出不能证明所有回答都可靠，也不能据此判定其内部机制。" @answer="answer('grounding',$event)" @check="check('grounding')"/>
+ <EvidenceQuestion title="三种输入回答不同，等于证明视觉指令训练的收益吗？" :options="['不等于，还需要训练阶段或数据消融','等于，因为图片变了']" :value="book.answers.causal" :checked="book.checked.causal" correct="不等于，还需要训练阶段或数据消融" explanation="本实验固定权重改变输入，研究的是对图像条件的依赖。原论文的两阶段训练与消融需要另外的受控实验，不能把输入条件当成训练阶段。" @answer="answer('causal',$event)" @check="check('causal')"/>
+ <EvidenceQuestion title="运行LLaVA-1.5能否称为复现原始LLaVA论文全部结果？" :options="['不能，它是明确标注的后续版本替代实验','能，名字相同就代表相同系统']" :value="book.answers.version" :checked="book.checked.version" correct="不能，它是明确标注的后续版本替代实验" explanation="模型版本、投影结构和训练数据可能不同。本适配器支持HF的LLaVA+Llama主干，不混用LLaVA-NeXT、OneVision或原论文成绩。" @answer="answer('version',$event)" @check="check('version')"/>
+ <EvidenceNotes :book="book" :saved="saved" :completed="completed" :total="3" @notes="book.notes=$event" @reset="restart" @download="download({source:photo?.source,question,box,include_no_image:includeNoImage})"/>
+</section></template>
+<style scoped>blockquote{margin:12px 0;padding:12px;background:#eff6ff;white-space:pre-wrap}.cards>article{min-width:220px}.tokens{white-space:pre-wrap}input[type=number]{width:80px}</style>

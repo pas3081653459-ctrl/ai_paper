@@ -1,0 +1,55 @@
+# --- Python / environments ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.venv-*/
+*.egg-info/
+.pytest_cache/
+
+# --- Node / build output ---
+node_modules/
+channel_lab/frontend/dist/
+
+# --- Model weights & large binaries (download separately, see README) ---
+channel_lab/models/
+*.safetensors
+*.bin
+*.pth
+*.ckpt
+*.onnx
+*.h5
+*.msgpack
+*.tflite
+# allow the two tiny trained classifiers (~90 KB each) used by /api/analyze
+*.pt
+!channel_lab/artifacts/cnn.pt
+!channel_lab/artifacts/resnet.pt
+
+# --- Datasets (Oxford-IIIT Pet ~1.6 GB); only 2 sample images + split lists are tracked ---
+channel_lab/data/*.tar.gz
+channel_lab/data/annotations/trimaps/
+channel_lab/data/annotations/xmls/
+channel_lab/data/images/*
+!channel_lab/data/images/Abyssinian_201.jpg
+!channel_lab/data/images/american_bulldog_203.jpg
+
+# --- Paper PDFs (third-party, ~97 MB); manifests/checksums are tracked ---
+channel_lab/frontend/public/papers/*.pdf
+
+# --- Runtime records / caches ---
+channel_lab/experiment_runs/
+.sam-image-cache/
+*.log
+!channel_lab/artifacts/training.log
+
+# --- Secrets & local config ---
+.env
+.env.*
+*.env.local
+*.local
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+.DS_Store

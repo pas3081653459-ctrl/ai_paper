@@ -1,0 +1,25 @@
+<script setup lang="ts">
+import {computed,ref,shallowRef,watch} from 'vue'
+import cases from '../../../../backend/reasoning_cases.json'
+import TraceLoader from './TraceLoader.vue'
+import SolutionLegacy from './SolutionLegacy.vue'
+import LanguageModelStatus from './LanguageModelStatus.vue'
+import {useLocalLanguage,downloadLanguageRecord} from '../../papers/useLocalLanguage'
+import {parseAudit} from '../../papers/trainingTraces'
+import {envelope} from '../../papers/traceValidation'
+import {downloadSearch} from '../../papers/ticSearch'
+const chosen=ref(cases.tasks.map(t=>t.id)),maxTokens=ref(64),index=ref(0),shown=ref(0),demo=ref(0),meta=ref('')
+const data=shallowRef<ReturnType<typeof parseAudit>|null>(null),marks=ref<Record<string,string>>({})
+const local=useLocalLanguage('14','training'),{config,busy,error}=local
+const current=computed(()=>data.value?.tasks[index.value]),lines=computed(()=>current.value?.responses[1].output.split(/\r?\n/).filter(s=>s.trim())??[])
+const categories=computed(()=>[...new Set(data.value?.tasks.map(t=>t.category)??[])])
+function clear(){local.invalidate();data.value=null;marks.value={};meta.value='';index.value=0;shown.value=0}
+watch([chosen,maxTokens],clear,{deep:true,flush:'sync'})
+function accept(v:unknown){data.value=parseAudit(v);index.value=0;shown.value=0;marks.value={};meta.value='导入记录，来源见导入器'}
+function receive(v:unknown){const e=envelope(v,'14');accept(e.data);meta.value=JSON.stringify(e.provenance,null,2)}
+function start(){clear();local.request({paper_id:'14',task_ids:chosen.value,max_new_tokens:maxTokens.value},receive)}
+function score(category:string,condition:number){const tasks=data.value?.tasks.filter(t=>t.category===category)??[];return `${tasks.filter(t=>t.responses[condition].answer===t.expected).length} / ${tasks.length}`}
+const bad=['3 盒，每盒 4 个：3 × 4 = 7。','吃掉 2 个：7 − 2 = 10。','FINAL: 10']
+</script>
+<template><section class="paper-lab"><h3>结果对了，解答就一定对了吗？</h3><details open><summary>先检查一个本站手写反例（不是模型输出）</summary><p>3盒苹果，每盒4个，吃掉2个。剩多少？</p><button :disabled="demo===bad.length" @click="demo++">揭示下一行</button><ol><li v-for="(line,i) in bad.slice(0,demo)" :key="i">{{line}}</li></ol><p v-if="demo===bad.length">最终10碰巧正确，但首行乘法已经错误；不能用最终答案正确替每一步背书。</p></details><h4>用同一个真实模型比较两种公开回答方式</h4><div class="controls"><label v-for="t in cases.tasks" :key="t.id"><input v-model="chosen" type="checkbox" :value="t.id">{{t.category}}</label><label>每条件输出上限<select v-model.number="maxTokens"><option :value="32">32 token</option><option :value="64">64 token</option><option :value="128">128 token</option></select></label></div><p>本站固定题集；直接回答与简短可核查解答分别运行，贪心、同模型、同长度上限。只请求对外解答，不索取私有思维。</p><button :disabled="busy||!config?.configured||!chosen.length" @click="start">运行提示对照（GPT‑2替代）</button><LanguageModelStatus guide="TRAINING_CATEGORY.md" :config="config" :busy="busy" :error="error" @refresh="local.refresh" @cancel="local.cancel"/><TraceLoader paper-id="14" :validate="parseAudit" @loaded="accept" @clear="clear"/>
+<template v-if="data&&current"><label>题目<select v-model.number="index" @change="shown=0"><option v-for="(t,i) in data.tasks" :key="t.id" :value="i">{{t.id}} · {{t.category}}</option></select></label><h4>{{current.question}}</h4><div class="cards"><article><h4>直接回答</h4><pre>{{current.responses[0].output||'（空输出）'}}</pre><p>提取：{{current.responses[0].answer??'格式不合规'}}</p></article><article><h4>公开解答</h4><button :disabled="shown>=lines.length" @click="shown++">揭示下一行</button> <button @click="shown=lines.length">展开全部</button><ol><li v-for="(line,i) in lines.slice(0,shown)" :key="i"><p>{{line}}</p><button :aria-pressed="marks[current.id]===String(i)" @click="marks[current.id]=String(i)">首个可核查错误</button></li></ol><p v-if="!lines.length">空输出，没有可核查步骤。</p><button @click="marks[current.id]='none'">未发现错误</button> <button @click="marks[current.id]='uncertain'">无法判断</button><p>你的判断：{{marks[current.id]==='none'?'未发现错误':marks[current.id]==='uncertain'?'无法判断':marks[current.id]!==undefined?`第 ${Number(marks[current.id])+1} 行`:'尚未标注'}}</p></article></div><details><summary>独立答案检查与实际提示</summary><p>目标 {{current.expected}}；直接 {{current.responses[0].answer===current.expected?'匹配':'不匹配'}}；公开解答 {{current.responses[1].answer===current.expected?'匹配':'不匹配'}}。从实际输出提取最后一行 FINAL: 整数，缺失/多个标记计格式失败。</p><div v-for="r in current.responses" :key="r.condition"><pre>{{r.text}}</pre><p>{{r.generated.length}} token；{{r.stop_reason}}。</p></div></details><table><thead><tr><th>题型</th><th>直接回答正确/总数</th><th>公开解答正确/总数</th></tr></thead><tbody><tr v-for="c in categories" :key="c"><td>{{c}}</td><td>{{score(c,0)}}</td><td>{{score(c,1)}}</td></tr></tbody></table><button v-if="local.trace.value" @click="downloadLanguageRecord(local.trace.value,'14')">导出模型记录</button> <button @click="downloadSearch({kind:'learner-solution-audit',marks,tasks:data.tasks,source:meta},'solution-audit-notes.json')">导出首错标注</button><details><summary>来源</summary><pre>{{meta}}</pre></details></template><details><summary>旧版单题记录</summary><SolutionLegacy/></details><p class="note">按输出换行揭示，换行不等于逻辑步骤。整数格式匹配不评价推导过程；格式失败也不能直接解释成不会算。GPT‑2小样本对照不复现原论文few-shot规模实验。</p></section></template>

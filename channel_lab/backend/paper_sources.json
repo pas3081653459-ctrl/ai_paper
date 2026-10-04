@@ -1,0 +1,122 @@
+{
+  "01": {
+    "name": "ResNet",
+    "folder": "ai-papers-01",
+    "file": "01_resnet.pdf"
+  },
+  "02": {
+    "name": "AlphaGo",
+    "folder": "ai-papers-01",
+    "file": "02_alphago.pdf"
+  },
+  "03": {
+    "name": "AlphaZero",
+    "folder": "ai-papers-01",
+    "file": "03_alphazero.pdf"
+  },
+  "04": {
+    "name": "Transformer",
+    "folder": "ai-papers-01",
+    "file": "04_transformer.pdf"
+  },
+  "05": {
+    "name": "GPT-1",
+    "folder": "ai-papers-01",
+    "file": "05_gpt-1.pdf"
+  },
+  "06": {
+    "name": "BERT",
+    "folder": "ai-papers-01",
+    "file": "06_bert.pdf"
+  },
+  "07": {
+    "name": "GPT-2",
+    "folder": "ai-papers-01",
+    "file": "07_gpt-2.pdf"
+  },
+  "08": {
+    "name": "GPT-3",
+    "folder": "ai-papers-01",
+    "file": "08_gpt-3.pdf"
+  },
+  "09": {
+    "name": "Scaling Laws",
+    "folder": "ai-papers-01",
+    "file": "09_scaling-laws-kaplan.pdf"
+  },
+  "10": {
+    "name": "ViT",
+    "folder": "ai-papers-01",
+    "file": "10_vit.pdf"
+  },
+  "11": {
+    "name": "DDPM",
+    "folder": "ai-papers-02",
+    "file": "11_ddpm.pdf"
+  },
+  "12": {
+    "name": "CLIP",
+    "folder": "ai-papers-02",
+    "file": "12_clip.pdf"
+  },
+  "13": {
+    "name": "InstructGPT",
+    "folder": "ai-papers-02",
+    "file": "13_instructgpt.pdf"
+  },
+  "14": {
+    "name": "Chain-of-Thought",
+    "folder": "ai-papers-02",
+    "file": "14_chain-of-thought.pdf"
+  },
+  "15": {
+    "name": "Chinchilla",
+    "folder": "ai-papers-02",
+    "file": "15_chinchilla.pdf"
+  },
+  "17": {
+    "name": "LLaMA",
+    "folder": "ai-papers-02",
+    "file": "17_llama.pdf"
+  },
+  "18": {
+    "name": "GPT-4 报告",
+    "folder": "ai-papers-03",
+    "file": "18_gpt-4-technical-report.pdf"
+  },
+  "19": {
+    "name": "LLaVA",
+    "folder": "ai-papers-03",
+    "file": "19_llava.pdf"
+  },
+  "20": {
+    "name": "Segment Anything",
+    "folder": "ai-papers-03",
+    "file": "20_segment-anything.pdf"
+  },
+  "21": {
+    "name": "ReAct",
+    "folder": "ai-papers-04",
+    "file": "21_react.pdf"
+  },
+  "22": {
+    "name": "Toolformer",
+    "folder": "ai-papers-04",
+    "file": "22_toolformer.pdf"
+  },
+  "23": {
+    "name": "Mixtral",
+    "folder": "ai-papers-04",
+    "file": "23_mixtral-of-experts.pdf"
+  },
+  "24": {
+    "name": "DeepSeek-R1",
+    "folder": "ai-papers-04",
+    "file": "24_deepseek-r1.pdf"
+  },
+  "25": {
+    "name": "MMaDA",
+    "folder": "ai-papers-04",
+    "file": "25_mmada.pdf"
+  }
+}

@@ -1,0 +1,5 @@
+**/__pycache__
+**/node_modules
+channel_lab/models
+channel_lab/experiment_runs
+*.tgz
