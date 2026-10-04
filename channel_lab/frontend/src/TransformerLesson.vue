@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SiteNav from './components/SiteNav.vue'
 import LearningGuide from './components/LearningGuide.vue'
 import { computed, ref } from 'vue'
 import NumberMatrix from './components/NumberMatrix.vue'
@@ -72,7 +73,8 @@ next_id = probabilities.argmax(-1)    # 贪心选择示意
 
 <template>
 <div class="transformer-page">
- <header v-if="!paperMode" class="lesson-header"><a href="#/">← CNN / ResNet</a><strong>Transformer 原理</strong><a href="#/papers">论文实验室</a><span>数据流 · 数学 · 代码</span></header>
+ <SiteNav v-if="!paperMode" active="courses"/>
+ <header v-if="!paperMode" class="lesson-header"><a href="#/papers/04">← Transformer 课程</a><strong>Transformer 数据流实验</strong><span>数据流 · 数学 · 代码</span></header>
  <LearningGuide v-if="!paperMode" paper-id="04"/>
  <section class="lesson-layout">
   <aside class="lesson-sidebar">

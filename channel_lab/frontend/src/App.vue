@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SiteNav from './components/SiteNav.vue'
 import LearningGuide from './components/LearningGuide.vue'
 import { ref, computed, shallowRef, onMounted, watch, onUnmounted } from 'vue'
 import { Layers3, ArrowUpRight, Upload, ArrowRight, Play, X, Maximize2, ScanLine, FlaskConical, GitBranch, Info as InfoIcon, LoaderCircle, ImagePlus } from 'lucide-vue-next'
@@ -92,9 +93,10 @@ onUnmounted(() => {clearInterval(poll); document.removeEventListener('keydown',e
 
 <template>
 <div class="app-shell">
+ <SiteNav v-if="!props.paperMode" active="courses"/>
  <header v-if="!props.paperMode" class="topbar">
-  <a class="brand" href="/" aria-label="Channel Lab 首页"><strong>CNN / ResNet</strong><span>通道对比</span></a>
-  <nav><a href="#/papers">论文实验室</a><a href="#/transformer">Transformer 原理</a><button class="text-button" @click="dialog='guide'">使用说明</button><button class="text-button" @click="dialog='experiment'">训练记录</button></nav>
+  <a class="brand" href="#/papers/01" aria-label="返回ResNet课程"><strong>CNN / ResNet</strong><span>通道对比 · 返回课程</span></a>
+  <nav><button class="text-button" @click="dialog='guide'">使用说明</button><button class="text-button" @click="dialog='experiment'">训练记录</button></nav>
  </header>
  <LearningGuide v-if="!props.paperMode" paper-id="01"/>
  <section class="vision-workspace">

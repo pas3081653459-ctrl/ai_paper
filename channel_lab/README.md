@@ -1,5 +1,7 @@
 # Channel Lab · CNN 与 ResNet 特征学习网站
 
+2026-10-05：默认入口改为统一学习首页，按六个学习方向组织24课，提供搜索、继续学习、数学和术语入口。`#/papers`为目录；独立CNN/ResNet实验移到`#/vision`，Transformer实验保留`#/transformer`，两者也仍可从课程进入。详情见[HOME_NAVIGATION.md](HOME_NAVIGATION.md)。未构建或启动，旧dist仍需后续更新。
+
 新增独立的中英文术语词典（`#/glossary`）与9主题数学学习室（`#/math`）：词义/语境/相关原文、符号与分步解释、可操作数值例子。课内通过折叠入口在新标签打开，保留原实验。配置不增加新依赖，详情见[TERMS_AND_MATH.md](TERMS_AND_MATH.md)。源码尚未构建或运行验收。
 
 2026-10-04：全站学习阅读改版。24课增加独立操作导读与折叠解释，目录简化筛选；原文对照支持条件核查、可跳过预测、并排PDF与下载。24份PDF已随附于`frontend/public/papers`（约97MB），后续构建会复制至`dist/papers`，新前端原文链接不再依赖本机论文路径或PDF API。详情见[UX_READING_UPDATE.md](UX_READING_UPDATE.md)。本轮未编译或启动，旧dist尚未更新。

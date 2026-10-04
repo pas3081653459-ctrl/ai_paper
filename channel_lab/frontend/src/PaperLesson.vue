@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SiteNav from './components/SiteNav.vue'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import TensorVolume from './components/TensorVolume.vue'
 import NumberMatrix from './components/NumberMatrix.vue'
@@ -86,7 +87,8 @@ const patchStyle=(r:number,c:number)=>paper.id==='10'?{borderRight:(c+1)%setting
 </script>
 <template>
  <div class="paper-page">
-  <header class="paper-header"><a href="#/papers">← 论文实验室</a><strong>{{paper.name}}</strong><a href="#/transformer">Transformer 详解</a></header>
+  <SiteNav active="courses"/>
+  <header class="paper-header"><a href="#/papers">← 全部课程</a><strong>{{paper.name}}</strong><a :href="`#/glossary?paper=${paper.id}`" target="_blank" rel="noopener">本课术语 ↗</a></header>
   <main class="paper-main paper-lesson">
    <section class="paper-lesson-intro"><span class="paper-eyebrow">{{paper.group}} · {{paper.year}} · 第 {{index+1}} / {{papers.length}} 课</span><h1>{{paper.question}}</h1><details><summary>这节课要理解什么？</summary><p>{{paper.principle}}</p><nav v-if="related.length" class="paper-prerequisites">相关基础：<a v-for="p in related" :key="p.id" :href="`#/papers/${p.id}`">{{p.name}}</a></nav></details></section>
    <nav class="lesson-outline" aria-label="本课阅读导航"><button @click="goTo('lesson-experiment')">1 动手实验</button><button @click="goTo('lesson-explain')">2 理解原因</button><button @click="goTo('lesson-original')">3 原文对照</button><button v-if="paper.id!=='01'" @click="goTo('lesson-advanced')">进阶算子</button><small>可自由跳转，已有实验保留</small></nav>
