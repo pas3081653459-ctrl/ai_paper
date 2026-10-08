@@ -1,4 +1,4 @@
-"""逐步执行公开 Action/Observation；模型仅连接用户配置的本机服务。"""
+"""逐步执行公开 Action/Observation；模型连接用户配置的本机服务，或显式白名单中的 HTTPS 服务。"""
 import asyncio
 import hashlib
 import json
@@ -22,16 +22,18 @@ def configuration():
     endpoint = os.environ.get('CHANNEL_LAB_REACT_ENDPOINT','').rstrip('/')
     model = os.environ.get('CHANNEL_LAB_REACT_MODEL','').strip()
     problems = []
-    # 本阶段只允许回环地址，不默认把数据交给任何云端服务。
+    # 默认只允许回环地址；云端 OpenAI 兼容接口须由部署者在 CHANNEL_LAB_REACT_ALLOWED_HOSTS 中显式列出且使用 HTTPS。
+    allowed = {h.strip().lower() for h in os.environ.get('CHANNEL_LAB_REACT_ALLOWED_HOSTS','').split(',') if h.strip()}
     try:
         url = urlparse(endpoint)
-        valid = (url.scheme in ('http','https') and url.hostname in ('127.0.0.1','localhost','::1')
-                 and not (url.username or url.password or url.query or url.fragment))
+        loopback = url.scheme in ('http','https') and url.hostname in ('127.0.0.1','localhost','::1')
+        remote = url.scheme == 'https' and (url.hostname or '').lower() in allowed
+        valid = (loopback or remote) and not (url.username or url.password or url.query or url.fragment)
         _ = url.port  # 非法端口作为配置错误返回，不让读者模式随之崩溃。
     except ValueError:
         valid = False
     if not valid:
-        problems.append('请配置本机回环地址的聊天接口，例如 http://127.0.0.1:1234/v1/chat/completions')
+        problems.append('请配置本机回环地址的聊天接口（例如 http://127.0.0.1:1234/v1/chat/completions），或在 CHANNEL_LAB_REACT_ALLOWED_HOSTS 中列出的 HTTPS 接口')
     if not model:
         problems.append('缺少 CHANNEL_LAB_REACT_MODEL')
     return {'configured':not problems,'problems':problems,'endpoint':endpoint,'model':model,
