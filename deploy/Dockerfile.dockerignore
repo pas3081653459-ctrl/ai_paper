@@ -3,3 +3,7 @@
 channel_lab/models
 channel_lab/experiment_runs
 *.tgz
+**/*.pdf
+logs
+.deployed_commit
+.update.lock
