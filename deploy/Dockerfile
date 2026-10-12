@@ -37,9 +37,9 @@ ENV HF_HUB_OFFLINE=1 \
     CHANNEL_LAB_EXPERIMENT_RUNS=/app/experiment_runs \
     CHANNEL_LAB_PAPER_ROOT=/app/papers
 
+EXPOSE 8000
+CMD ["python", "-m", "uvicorn", "channel_lab.backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+
 FROM deps AS app
 COPY channel_lab /app/channel_lab
 RUN mkdir -p /app/experiment_runs /app/papers /app/channel_lab/models
-
-EXPOSE 8000
-CMD ["python", "-m", "uvicorn", "channel_lab.backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
