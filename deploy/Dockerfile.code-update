@@ -1,6 +1,8 @@
-# Code-only update on top of the previous, verified image (same Python deps: torch 2.14.0+cpu, transformers 4.55.4, diffusers 0.35.1).
-# Used 2026-10-04: the full Dockerfile's layer cache was gone and pip via the CPU-torch index stalled.
-FROM channel-lab:prev-20261004
+# Code-only update on top of a dependency base image (no pip at all, takes seconds).
+# channel-lab:base = `docker build --target deps` of deploy/Dockerfile (wheelhouse, pinned deps).
+# Paper PDFs are NOT in the image; run.sh mounts /home/ubuntu/channel_lab_papers.
+ARG BASE=channel-lab:base
+FROM ${BASE}
 RUN rm -rf /app/channel_lab
 COPY channel_lab /app/channel_lab
-RUN mkdir -p /app/channel_lab/models
+RUN mkdir -p /app/channel_lab/models /app/experiment_runs /app/papers

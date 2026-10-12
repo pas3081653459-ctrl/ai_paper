@@ -1,35 +1,21 @@
-FROM python:3.12-slim-bookworm
+# syntax=docker/dockerfile:1
+FROM python:3.12-slim-bookworm AS deps
 
 WORKDIR /app
 
-# Tencent PyPI mirror for speed in CN; torch CPU from official CPU index
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     TORCH_NUM_THREADS=2
 
-COPY channel_lab/requirements.txt /tmp/requirements.txt
-
-# Base deps (identical to previous image so the cached layer is reused)
-RUN pip install -i https://mirrors.cloud.tencent.com/pypi/simple --trusted-host mirrors.cloud.tencent.com \
-      --extra-index-url https://download.pytorch.org/whl/cpu \
-      "torch==2.14.0" \
-      "numpy>=1.24" \
-      "Pillow>=10" \
-      "fastapi>=0.115" \
-      "uvicorn>=0.30" \
-      "python-multipart>=0.0.18" \
-      "httpx>=0.27"
-
-# Optional model adapters (requirements-clip/-language/-vision/-ddpm.txt). Weights are NOT in the image.
-RUN pip install -i https://mirrors.cloud.tencent.com/pypi/simple --trusted-host mirrors.cloud.tencent.com \
-      --extra-index-url https://download.pytorch.org/whl/cpu \
-      "torch==2.14.0" \
-      "transformers==4.55.4" \
-      "diffusers==0.35.1" \
-      "huggingface-hub>=0.34,<1.0" \
-      "safetensors>=0.4.3,<0.7"
+# Pinned deps (pip freeze of the verified image) installed OFFLINE from the host wheelhouse
+# /home/ubuntu/channel_lab_wheels (filled by deploy/fetch_wheels.sh). No network, no index => reproducible.
+# Build: docker build --build-context wheels=/home/ubuntu/channel_lab_wheels -f Dockerfile -t channel-lab:X .
+#        (add --target deps -t channel-lab:base for the base used by Dockerfile.code-update)
+COPY requirements-docker.txt /tmp/requirements-docker.txt
+RUN --mount=type=bind,from=wheels,target=/wheels \
+    pip install --no-index --find-links /wheels -r /tmp/requirements-docker.txt
 
 # Model weights live on the host (/home/ubuntu/channel_lab_models) and are mounted read-only here.
 ENV HF_HUB_OFFLINE=1 \
@@ -51,6 +37,7 @@ ENV HF_HUB_OFFLINE=1 \
     CHANNEL_LAB_EXPERIMENT_RUNS=/app/experiment_runs \
     CHANNEL_LAB_PAPER_ROOT=/app/papers
 
+FROM deps AS app
 COPY channel_lab /app/channel_lab
 RUN mkdir -p /app/experiment_runs /app/papers /app/channel_lab/models
 

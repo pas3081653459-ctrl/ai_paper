@@ -25,6 +25,7 @@ from .react_api import router as react_router
 from .language_api import router as language_router
 from .vision_api import router as vision_router
 from .training_api import router as training_router
+from .site_auth import SiteAuth
 
 @asynccontextmanager
 async def lifespan(app):
@@ -240,3 +241,6 @@ def paper_pdf(paper_id: str):
 DIST = ROOT/'frontend'/'dist'
 if DIST.exists():
     app.mount('/', StaticFiles(directory=DIST, html=True), name='frontend')
+
+# 最外层：整站访问密码（未设置 CHANNEL_LAB_SITE_PASSWORD 时不启用）。
+app.add_middleware(SiteAuth)
