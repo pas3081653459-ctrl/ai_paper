@@ -17,7 +17,7 @@ mkdir -p "$BUILD/logs" "$PAPERS"
 exec 9>"$BUILD/.update.lock"; flock -n 9 || { echo "another update is running"; exit 1; }
 exec > >(tee -a "$LOG") 2>&1
 step() { echo "== [$(( $(date +%s) - T0 ))s] $*"; }
-retry() { local n=0; until "$@"; do n=$((n+1)); [ $n -ge 5 ] && return 1; echo "retry $n: $*"; sleep $((n*3)); done; }
+retry() { local n=0; until "$@"; do n=$((n+1)); [ $n -ge 6 ] && return 1; echo "retry $n: $*"; sleep $((n*3)); done; }
 
 # Smoke request with site login; credentials go to curl via stdin config, never argv/logs.
 auth_curl() {  # auth_curl URL -> prints HTTP code
@@ -44,7 +44,8 @@ step "git pull $REPO ($BRANCH)"
 cd "$REPO"
 git config http.version HTTP/1.1
 OLD=$(git rev-parse HEAD)
-retry git fetch --depth 50 origin "$BRANCH"
+# GitHub from this server is flaky (connect timeouts, HTTP/2 resets): bound each try, then retry.
+retry timeout 90 git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=20 fetch --depth 50 origin "$BRANCH"
 git merge --ff-only FETCH_HEAD
 NEW=$(git rev-parse --short HEAD)
 DEPLOYED=$(cat "$BUILD/.deployed_commit" 2>/dev/null || true)
