@@ -17,7 +17,7 @@ mkdir -p "$BUILD/logs" "$PAPERS"
 exec 9>"$BUILD/.update.lock"; flock -n 9 || { echo "another update is running"; exit 1; }
 exec > >(tee -a "$LOG") 2>&1
 step() { echo "== [$(( $(date +%s) - T0 ))s] $*"; }
-retry() { local n=0; until "$@"; do n=$((n+1)); [ $n -ge 6 ] && return 1; echo "retry $n: $*"; sleep $((n*3)); done; }
+retry() { local n=0; until "$@"; do n=$((n+1)); [ $n -ge ${RETRIES:-6} ] && return 1; echo "retry $n: $*"; sleep $((n*3)); done; }
 
 # Smoke request with site login; credentials go to curl via stdin config, never argv/logs.
 auth_curl() {  # auth_curl URL -> prints HTTP code
@@ -45,8 +45,13 @@ cd "$REPO"
 git config http.version HTTP/1.1
 OLD=$(git rev-parse HEAD)
 # GitHub from this server is flaky (connect timeouts, HTTP/2 resets): bound each try, then retry.
-retry timeout 90 git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=20 fetch --depth 50 origin "$BRANCH"
-git merge --ff-only FETCH_HEAD
+PULLNOTE=""
+if retry timeout 90 git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=20 fetch --depth 50 origin "$BRANCH"; then
+  git merge --ff-only FETCH_HEAD
+else
+  PULLNOTE=" WARNING: GitHub unreachable, used existing checkout"; echo "$PULLNOTE"
+  [ "${FORCE:-0}" = 1 ] || { echo "SUMMARY: git pull failed after retries; nothing deployed. Re-run later (or FORCE=1 to redeploy the current checkout)."; exit 1; }
+fi
 NEW=$(git rev-parse --short HEAD)
 DEPLOYED=$(cat "$BUILD/.deployed_commit" 2>/dev/null || true)
 echo "checkout $(git rev-parse --short "$OLD") -> $NEW ; deployed: ${DEPLOYED:-none}"
@@ -96,7 +101,7 @@ TSWAP=$(date +%s)
 sh "$BUILD/run.sh" channel-lab:latest >/dev/null
 if smoke 80; then
   echo "$NEW" > "$BUILD/.deployed_commit"
-  echo "SUMMARY: deployed $NEW as channel-lab:$TS (latest); rollback image $PREV; swap ${DOWN:-$(( $(date +%s) - TSWAP ))}s; total $(( $(date +%s) - T0 ))s; log $LOG"
+  echo "SUMMARY: deployed $NEW as channel-lab:$TS (latest); rollback image $PREV; swap ${DOWN:-$(( $(date +%s) - TSWAP ))}s; total $(( $(date +%s) - T0 ))s; log $LOG$PULLNOTE"
 else
   echo "swap failed, rolling back to $PREV"
   sudo docker tag "$PREV" channel-lab:latest
