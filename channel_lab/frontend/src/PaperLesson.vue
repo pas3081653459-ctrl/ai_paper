@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TransferTopicLink from './components/TransferTopicLink.vue'
 import SiteNav from './components/SiteNav.vue'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import TensorVolume from './components/TensorVolume.vue'
@@ -94,6 +95,7 @@ const patchStyle=(r:number,c:number)=>paper.id==='10'?{borderRight:(c+1)%setting
    <nav class="lesson-outline" aria-label="本课阅读导航"><button @click="goTo('lesson-experiment')">1 动手实验</button><button @click="goTo('lesson-explain')">2 理解原因</button><button @click="goTo('lesson-original')">3 原文对照</button><button v-if="paper.id!=='01'" @click="goTo('lesson-advanced')">进阶算子</button><small>可自由跳转，已有实验保留</small></nav>
    <section id="lesson-experiment" tabindex="-1" aria-label="动手实验">
    <LearningGuide :paper-id="paper.id"/>
+   <TransferTopicLink v-if="['05','06'].includes(paper.id)"/>
    <ResNetPaper v-if="paper.id==='01'"/>
    <TransformerPaper v-else-if="paper.id==='04'" @open-model="openModel"/>
    <PaperCaseLesson v-else :key="paper.id" :paper-id="paper.id" @open-model="openModel"/>

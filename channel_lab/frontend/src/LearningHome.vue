@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TransferTopicLink from './components/TransferTopicLink.vue'
 import {computed,ref} from 'vue'
 import SiteNav from './components/SiteNav.vue'
 import {courseTopics,topicHref} from './papers/courseTopics'
@@ -13,6 +14,7 @@ function search(){window.location.hash=`#/papers${query.value.trim()?`?q=${encod
 <template><div class="paper-page"><SiteNav active="home"/><main class="paper-main learning-home"><section class="home-intro"><span class="paper-eyebrow">{{papers.length}} 篇论文 · 交互实验 · 原文对照</span><h1>从一个问题，开始理解 AI</h1><p>选择你感兴趣的方向。先动手观察，再理解原理，最后回到论文验证。</p><form class="home-search" role="search" @submit.prevent="search"><label class="sr-only" for="home-search">搜索课程</label><input id="home-search" v-model="query" type="search" placeholder="搜索论文、方法或问题，如 BERT、分割、工具"><button type="submit">查找课程</button></form><div class="home-shortcuts"><a href="#/papers">浏览全部 {{papers.length}} 课 →</a><a href="#/math">从数学基础开始 →</a></div></section>
 <section v-if="last" class="home-resume" aria-label="继续学习"><div><small>上次浏览</small><h2>{{last.name}}</h2><p>已标记学完 {{completed}} / {{papers.length}} 课 · 进度保存在当前浏览器</p></div><a class="paper-primary" :href="`#/papers/${last.id}`">继续这节课 →</a></section>
 <section aria-labelledby="topics-title"><div class="home-section-title"><div><h2 id="topics-title">按方向学习</h2><p>不必按论文年份顺序读，从你想理解的问题进入。</p></div></div><div class="topic-grid"><a v-for="(topic,i) in courseTopics" :key="topic.id" :href="topicHref(topic.id)" class="topic-card"><div class="topic-meta"><span>0{{i+1}}</span><span>{{topic.papers.length}} 课</span></div><h3>{{topic.name}}</h3><p class="topic-question">{{topic.question}}</p><p>{{topic.description}}</p><span class="topic-cta">查看这个方向 →</span></a></div></section>
+<TransferTopicLink/>
 <section class="home-start" aria-labelledby="start-title"><h2 id="start-title">第一次来，怎样开始？</h2><ol><li><strong>选一个方向</strong><span>进入分类，选你最想回答的问题。</span></li><li><strong>做一次小实验</strong><span>跟着“从这里开始”，只改变一个条件。</span></li><li><strong>核对理解</strong><span>展开解释，对照原文；遇到术语和公式再查工具。</span></li></ol><details><summary>还没配置模型，可以学习吗？</summary><p>可以先阅读讲解、原文，使用无需权重的数学和基础交互。课程会提示哪些结果需要本地模型或实验记录；没有配置时不会显示伪造输出。</p></details></section>
 <section aria-labelledby="resources-title"><div class="home-section-title"><h2 id="resources-title">学习工具</h2></div><div class="home-tools"><a href="#/glossary"><span>查概念</span><h3>中英文术语</h3><p>英文、中文含义、使用语境和相关论文出处。</p></a><a href="#/math"><span>读公式</span><h3>数学原理</h3><p>从符号到分步解释，用可调数值核对计算。</p></a><a href="#/papers"><span>读论文</span><h3>课程与原文</h3><p>在每课“原文对照”中并排阅读或下载随站 PDF。</p></a></div></section></main></div></template>
 <style scoped>

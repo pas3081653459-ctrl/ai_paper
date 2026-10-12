@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TransferTopicLink from './components/TransferTopicLink.vue'
 import { computed, ref } from 'vue'
 import { papers } from './papers/catalog'
 import SiteNav from './components/SiteNav.vue'
@@ -23,6 +24,7 @@ const availability=(id:string)=>['04','09','15','17','18'].includes(id)?'可直�
  <div class="paper-page">
   <SiteNav active="courses"/>
   <main class="paper-main">
+   <TransferTopicLink v-if="category==='language'"/>
    <section class="paper-intro"><a href="#/">← 学习首页</a><h1>{{currentTopic?.name??'全部课程'}}</h1><p>{{currentTopic?.description??'按方向选择课程，或搜索你想理解的问题。每课都有实验指引、原理解释和论文对照。'}}</p><div class="paper-actions"><a v-if="last" class="paper-primary" :href="`#/papers/${last.id}`">继续 {{last.name}}</a><span>已标记学完 {{completed}} / {{papers.length}}</span></div></section>
    <details class="paper-paths"><summary>按学习路线探索</summary><div v-for="path in paths" :key="path.name"><strong>{{path.name}}</strong><nav><template v-for="(id,i) in path.ids" :key="id"><span v-if="i" aria-hidden="true">→</span><a :href="`#/papers/${id}`">{{paperName(id)}}</a></template></nav></div></details>
    <div class="paper-filter"><label><span class="sr-only">搜索论文</span><input v-model="search" type="search" placeholder="搜索名称或想理解的问题" /></label><label>学习方向<select v-model="category"><option value="全部">全部课程</option><option v-for="topic in courseTopics" :key="topic.id" :value="topic.id">{{topic.name}} · {{topic.papers.length}}课</option></select></label></div>

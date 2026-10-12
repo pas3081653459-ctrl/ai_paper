@@ -314,3 +314,7 @@ BERT/GPT-2 已有可选本地API能产生兼容外层；其他模型的导出适
 23：manifest.json的data为`{format:'routing-pack-v2',experts,top_k,hidden_size,parameter_counts:{total,expert_total},cases:[{id,text,tokens:[{text,id,padding}],layers:[{name,file,sha256}]}]}`。需要2–4个语境、相同层序。层文件是裸对象`{case_id,layer,probabilities:[token][expert],selected:[token][K],weights:[token][K]}`，校验完整概率和、Top-k集合（允许平局）、归一化权重及清单SHA256。旧格式仅在折叠兼容入口读取。
 
 25：data为`{format:'denoise-v2',tokenizer_revision,decoder_revision,mask_id,image_grid:null|{rows,cols},image_shape:null|{width,height},positions:[{kind,condition}],frames:[{step,token_ids,tokens,masked,confidence,decoded_text,decoded_image}]}`。数组均按positions对齐；confidence每项为概率或null。MASK标记须与mask_id一致；固定条件在所有帧保持相同ID与显示字符串。帧step递增；前端核对图片实际解码尺寸。`decoded_image`为内嵌图片或null，绝不将图像token直接画成伪解码图。
+
+## 跨论文专题：transfer
+
+`paper_id="transfer"`使用v1外层，读取随机/预训练/只训头/联合微调的真实表示记录。2–200个固定样本，四阶段各一次，统一投影/尺度，冻结主干坐标需一致。字段与来源要求见TRANSFER_TOPIC.md，校验器在papers/transferLesson.ts。无内置伪造模型轨迹。

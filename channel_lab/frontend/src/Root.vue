@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import App from './App.vue'
 import LearningHome from './LearningHome.vue'
+import TransferTopic from './TransferTopic.vue'
 import TransformerLesson from './TransformerLesson.vue'
 import PaperAcademy from './PaperAcademy.vue'
 import PaperLesson from './PaperLesson.vue'
@@ -14,13 +15,14 @@ const routeQuery=computed(()=>new URLSearchParams(hash.value.split('?')[1]??''))
 const mathTopic=computed(()=>routePath.value.startsWith('#/math/')?routePath.value.slice('#/math/'.length):undefined)
 const lessonId=computed(()=>routePath.value.match(/^#\/papers\/(\d{2})$/)?.[1])
 const validLesson=computed(()=>papers.some(p=>p.id===lessonId.value))
-function title(){const paper=papers.find(p=>p.id===lessonId.value);document.title=paper?`${paper.name} · 论文实验室`:routePath.value==='#/vision'?'CNN / ResNet · Channel Lab':hash.value.startsWith('#/math')?'数学原理 · Channel Lab':hash.value.startsWith('#/glossary')?'中英文术语 · Channel Lab':hash.value.startsWith('#/transformer')?'Transformer 数据流 · Channel Lab':hash.value.startsWith('#/papers')?'全部课程 · Channel Lab':['','#','#/'].includes(routePath.value)?'学习首页 · Channel Lab':'页面不存在 · Channel Lab'}
+function title(){const paper=papers.find(p=>p.id===lessonId.value);document.title=routePath.value==='#/topics/pretraining-to-tasks'?'从预训练到任务适配 · Channel Lab':paper?`${paper.name} · 论文实验室`:routePath.value==='#/vision'?'CNN / ResNet · Channel Lab':hash.value.startsWith('#/math')?'数学原理 · Channel Lab':hash.value.startsWith('#/glossary')?'中英文术语 · Channel Lab':hash.value.startsWith('#/transformer')?'Transformer 数据流 · Channel Lab':hash.value.startsWith('#/papers')?'全部课程 · Channel Lab':['','#','#/'].includes(routePath.value)?'学习首页 · Channel Lab':'页面不存在 · Channel Lab'}
 async function route(){hash.value=window.location.hash;title();await nextTick();window.scrollTo({top:0,behavior:'instant'});const heading=document.querySelector('h1');if(heading instanceof HTMLElement){heading.tabIndex=-1;heading.focus({preventScroll:true})}}
 onMounted(()=>{title();window.addEventListener('hashchange',route)})
 onUnmounted(()=>window.removeEventListener('hashchange',route))
 </script>
 <template>
  <LearningHome v-if="['','#','#/'].includes(routePath)"/>
+ <TransferTopic v-else-if="routePath==='#/topics/pretraining-to-tasks'"/>
  <App v-else-if="routePath==='#/vision'"/>
  <GlossaryPage v-else-if="routePath==='#/glossary'" :key="hash" :paper="routeQuery.get('paper')??undefined" :term="routeQuery.get('term')??undefined"/>
  <MathStudyPage v-else-if="routePath==='#/math'||routePath.startsWith('#/math/')" :key="hash" :topic="mathTopic" :from="routeQuery.get('from')??undefined"/>
